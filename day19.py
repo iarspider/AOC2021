@@ -1,5 +1,5 @@
 import os
-from itertools import permutations, combinations
+from itertools import permutations, combinations, tee
 
 from aocd.models import Puzzle
 from aocd.transforms import lines
@@ -7,6 +7,8 @@ from colorama import init
 
 from aocbar import writebar
 from day19math import *
+
+import igraph
 
 file__ = os.path.basename(__file__)
 puzzle = Puzzle(year=2021, day=int(file__[3:5]))
@@ -18,6 +20,15 @@ dists = []
 
 matched_beacons = []
 scanner_transforms = {}
+
+g = igraph.Graph()
+
+
+def pairwise(iterable):
+    # pairwise('ABCDEFG') --> AB BC CD DE EF FG
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
 
 
 def dist(v1, v2):
@@ -33,7 +44,7 @@ def generate_distances():
 
 def find_matches():
     matches = {}
-    for is1, is2 in combinations(range(len(beacons)), 2):
+    for is1, is2 in permutations(range(len(beacons)), 2):
         match = []
         for ib1, jb1, d1 in dists[is1]:
             for ib2, jb2, d2 in dists[is2]:
@@ -42,7 +53,7 @@ def find_matches():
 
         if len(match) >= 66:
             matches[(is1, is2)] = match
-            # print(f"Scanners {is1} and {is2} have {len(match)} matching pairs")
+            print(f"Scanners {is1} and {is2} have {len(match)} matching pairs")
 
     return matches
 
@@ -53,7 +64,7 @@ def transform(v, offset, m):
 
 
 def calc_scanner_transf(is1, is2, match_):
-    print(f'Trying to calculate transformation from {is2} to {is1}')
+    # print(f'Trying to calculate transformation from {is2} to {is1}')
     match0 = match_[0]
     match1 = match_[1:]
     ib1, jb1, ib2, jb2 = match0
@@ -79,8 +90,8 @@ def calc_scanner_transf(is1, is2, match_):
                 if np.array_equal(bt, b1):
                     cnt += 1
 
+        # print(f" Got {cnt} matches")
         if cnt >= 12:
-            print(f" Got {cnt} matches")
             found = True
             if transformation['cnt'] < cnt:
                 transformation['off'] = off
@@ -111,21 +122,21 @@ def calc_scanner_transf(is1, is2, match_):
                 if np.array_equal(bt, b1):
                     cnt += 1
 
+        # print(f" Got {cnt} matches")
         if cnt >= 12:
-            print(f" Got {cnt} matches")
             found = True
             if transformation['cnt'] < cnt:
                 transformation['off'] = off
                 transformation['rot'] = m
                 transformation['cnt'] = cnt
 
-        if transformation['cnt'] > 0:
-            del transformation['cnt']
-            scanner_transforms[(is2, is1)] = transformation
-            return True
+    if transformation['cnt'] > 0:
+        del transformation['cnt']
+        scanner_transforms[(is2, is1)] = transformation
+        return True
 
-        print("No transformation found")
-        return False
+    print("No transformation found")
+    return False
 
 
 def filter_beacons():
@@ -144,22 +155,27 @@ def filter_beacons():
 
 
 def transform_scanner(from_s, to_s, data=None):
-    res = []
-    tr = scanner_transforms.get((from_s, to_s), None)
-    if tr is None:
-        return None
+    if data is None:
+        data = beacons[from_s]
+    res = data.copy()
 
-    data = data or beacons[from_s]
-    for b in data:
-        res.append(transform(b, tr['off'], tr['rot']))
+    path = g.get_shortest_paths(from_s, to_s)[0]
+    for fs, ts in pairwise(path):
+        tf = scanner_transforms[(fs, ts)]
+        for i in range(len(data)):
+            res[i] = transform(res[i], tf['off'], tf['rot'])
 
     return res
 
 
+def flatten(x):
+    return x.transpose().tolist()[0]
+
+
 def main_a():
-    global matched_beacons
-    input = lines(puzzle.example_data)
-    # input = lines(puzzle.input_data)
+    global matched_beacons, g
+    # input = lines(puzzle.example_data)
+    input = lines(puzzle.input_data)
     for line in input:
         if line.startswith('---'):
             beacons.append([])
@@ -176,58 +192,95 @@ def main_a():
 
     for k, v in matches.items():
         calc_scanner_transf(k[0], k[1], v)
-    #
-    # transformed_beacons = transform_scanner(4, 1)
+
+    g = igraph.Graph(n=len(beacons), edges=scanner_transforms.keys(), directed=True)
+
+    # transformed_beacons = beacons[0]
     # tf = scanner_transforms[(1, 0)]
     # for b0 in beacons[1]:
-    #     for b1 in transformed_beacons:
-    #         if np.array_equal(b0, b1):
-    #             # print(f'{b0=}')
-    #             # print(f'{b1=}')
-    #             b = transform(b0, tf['off'], tf['rot']).transpose().tolist()[0]
-    #             # print(f'{b=}')
-    #             # b0.transpose()[0]
-    #             print("{0},{1},{2}".format(*b))
-    #
-    # print('offset', (scanner_transforms[(4, 1)]['off'] + scanner_transforms[(1, 0)]['off']).transpose())
-    # tr41 = scanner_transforms[(4, 1)]
-    # tr10 = scanner_transforms[(1, 0)]
-    #
-    # s4in1 = transform([[0], [0], [0]], tr41['off'], tr41['rot'])
-    # s1in0 = transform(s4in1, tr10['off'], tr10['rot'])
-    #
-    # print(s1in0)
+    #     bt = transform(b0, tf['off'], tf['rot'])
+    #     for b1 in beacons[0]:
+    #         if np.array_equal(bt, b1):
+    #             bt = bt.transpose().tolist()[0]
+    #             print("{0},{1},{2}".format(*bt))
 
-    transformed_beacons = {}
-    for i in range(0, len(beacons)):
-        transformed_beacons[i] = beacons[i].copy()
+    # s1 = flatten(transform_scanner(1, 0, [np.array([0, 0, 0], ndmin=2).transpose()])[0])
+    # print(f'{s1=}')
 
-    for i in range(len(beacons) - 1, -1, -1):
-        for j in range(0, i):
-            transformation = scanner_transforms.get((i, j))
-            if transformation is not None:
-                print(f"Will transform {len(transformed_beacons[i])} from {i} to {j} (already has "
-                      f"{len(transformed_beacons[j])} beacons)")
-                for b in transformed_beacons[i]:
-                    bb = transform(b, transformation['off'], transformation['rot'])
-                    transformed_beacons[j].append(bb)
-                break
-            else:
-                print(f"No transformation found {i} -> {j}")
+    # tf4_1 = scanner_transforms[(4, 1)]
+    # tf1_0 = scanner_transforms[(1, 0)]
+    # for b0 in beacons[4]:
+    #     bt = transform(b0, tf4_1['off'], tf4_1['rot'])
+    #     for b1 in beacons[1]:
+    #         if np.array_equal(bt, b1):
+    #             btt = transform(bt, tf1_0['off'], tf1_0['rot'])
+    #             btt = btt.transpose().tolist()[0]
+    #             print("{0},{1},{2}".format(*btt))
 
-    matched_beacons = transformed_beacons[0]
+    # s4 = flatten(transform_scanner(4, 0, [np.array([0, 0, 0], ndmin=2).transpose()])[0])
+    # print(f'{s4=}')
+
+    # s2 = flatten(transform_scanner(2, 0, [np.array([0, 0, 0], ndmin=2).transpose()])[0])
+    # print(f'{s2=}')
+
+    # s3 = flatten(transform_scanner(3, 0, [np.array([0, 0, 0], ndmin=2).transpose()])[0])
+    # print(f'{s3=}')
+
+    matched_beacons = beacons[0].copy()
+    for i in range(1, len(beacons)):
+        res = transform_scanner(i, 0, beacons[i])
+        matched_beacons.extend(res)
+
     print(f"Got {len(matched_beacons)} beacons before filtering")
     filter_beacons()
 
+    for b in matched_beacons:
+        print("{0},{1},{2}".format(*flatten(b)))
+
+
+def mdist(a, b):
+    return np.sum(np.abs(a - b))
+
 
 def main_b():
-    input = lines(puzzle.example_data)
-    # input = lines(puzzle.input_data)
+    global matched_beacons, g
+
+    # input = lines(puzzle.example_data)
+    input = lines(puzzle.input_data)
+    for line in input:
+        if line.startswith('---'):
+            beacons.append([])
+        elif (not line):
+            continue
+        else:
+            beacons[-1].append(np.array([int(x) for x in line.split(',')], ndmin=2, dtype=np.int32).transpose())
+
+    for i in range(len(beacons)):
+        scanner_transforms[(i, i)] = {'rot': np.identity(3), 'off': [0, 0, 0]}
+
+    generate_distances()
+    matches = find_matches()
+
+    for k, v in matches.items():
+        calc_scanner_transf(k[0], k[1], v)
+
+    g = igraph.Graph(n=len(beacons), edges=scanner_transforms.keys(), directed=True)
+
+    scanners0 = [np.matrix([0, 0, 0])]
+    for i in range(1, len(beacons)):
+        scanners0.append(transform_scanner(i, 0, [np.array([0, 0, 0], ndmin=2).transpose()])[0].transpose())
+
+    # print(scanners0)
+    print(max(mdist(i, j) for i, j in pairwise(scanners0)))
+
+    for i, j in pairwise(scanners0):
+        print(i, j, mdist(i, j))
+
 
 
 if __name__ == '__main__':
     init()
     matrices = generate_matrices()
-    writebar(puzzle.day, 'a')
+    writebar(puzzle.day, 'b')
     main_a()
     # main_b()
