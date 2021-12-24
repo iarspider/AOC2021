@@ -25,8 +25,6 @@ def Rz(theta):
 
 
 def generate_matrices():
-    global matrices
-
     matrices = []
     for ax in range(4):
         for ay in range(4):
@@ -54,9 +52,8 @@ def generate_matrices():
     for i in reversed(sorted(excl)):
         matrices.pop(i)
 
-    for m in matrices:
-        print(m)
-
+    print("Geneated", len(matrices), "matrices")
+    return matrices
 
 def rotate(v, i):
     return np.dot(matrices[i], v)
