@@ -2,7 +2,7 @@ import builtins
 import functools
 import os
 from collections import namedtuple
-from typing import List
+from typing import List, Mapping
 
 from aocd.models import Puzzle
 from aocd.transforms import lines, numbers
@@ -72,7 +72,7 @@ def main_a():
         print(player2.score * die.counter)
 
 
-outcomes: List[int] = []
+outcomes: Mapping[int, int]
 # nTurn: int = 0
 stats: Counter = Counter()
 # keys = {}
@@ -145,22 +145,24 @@ def winOnTurn(pos: int, score: int, nTurn: int):  # , rolls=None):
 dummystats = {1: 0, 2: 0}
 
 
-def dummy_b(p1: int, p2: int, sc1: int, sc2: int):
-    for o1 in outcomes:
-        p1 = (p1 + o1) % 10
-        sc1 += (p1 + 1)
-        if sc1 >= 21:
-            dummystats[1] += 1
+def dummy_b(p1: int, p2: int, sc1: int, sc2: int, nn1: int, nn2: int):
+    for o1, n1 in outcomes.items():
+        p1_ = (p1 + o1) % 10
+        sc1_ = sc1 +  (p1_ + 1)
+        nn1_ = nn1 * n1
+        if sc1_ >= 21:
+            dummystats[1] += nn1_
             continue
 
-        for o2 in outcomes:
-            p2 = (p2 + o2) % 10
-            sc2 += (p2 + 1)
+        for o2, n2 in outcomes.items():
+            p2_ = (p2 + o2) % 10
+            sc2_ = sc2 + (p2_ + 1)
+            nn2_ = nn2 * n2
             if sc2 >= 21:
-                dummystats[2] += 1
+                dummystats[2] += nn2_
                 continue
 
-            dummy_b(p1, p2, sc1, sc2)
+            dummy_b(p1_, p2_, sc1_, sc2_, nn1_, nn2_)
 
 
 # Counter({7: 10856, 6: 9606, 8: 6345, 5: 4540, 9: 1587, 4: 1025, 3: 71, 10: 63})
@@ -177,7 +179,8 @@ def main_b():
     # print(run(p1, [3, 4, 3, 3, 4, 5]))
 
     outcomes = get_outcomes(3)
-    dummy_b(p1, p2, 0, 0)
+    print(outcomes)
+    dummy_b(p1, p2, 0, 0, 1, 1)
 
     print(dummystats)
 
@@ -232,11 +235,11 @@ def main_b():
     #     nTurn += 1
 
 
-def get_outcomes(sides: int) -> List[int]:
+def get_outcomes(sides: int) -> Mapping[int, int]:
     x = list(itertools.product(*itertools.repeat(range(1, sides + 1), 3)))
     c = Counter([sum(_) for _ in x])
 
-    return sorted(c.keys())
+    return c
 
 
 def run(pos, rolls):
