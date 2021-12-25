@@ -38,7 +38,7 @@ def dummy_b(player1pos: int, player2pos: int, player1score: int, player2score: i
         for sumRolls2, numCombinations2 in rolls.items():
             newPlayer2pos = player2pos + sumRolls2
             while newPlayer2pos > 10:
-                player2pos -= 10
+                newPlayer2pos -= 10
             sc2_ = player2score + newPlayer2pos
             newNumUniverses = newNumUniverses * numCombinations2
             # Did P2 win?
