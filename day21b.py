@@ -12,42 +12,42 @@ def get_rolls(sides: int):
     rolls = Counter([sum(_) for _ in x])
 
 
-# p1, p2: player positions
-# sc1, sc2: player scores
-# nn: number of universes at the start of the round
-def dummy_b(p1: int, p2: int, sc1: int, sc2: int, nn: int):
+# player1pos, player2pos: player positions
+# player1score, player2score: player scores
+# numUniverses: number of universes at the start of the round
+def dummy_b(player1pos: int, player2pos: int, player1score: int, player2score: int, numUniverses: int):
     # Player 1 rolls
-    for o1, n1 in rolls.items():
-        # o1: sum of 3d3, n1: number of combinations
+    for sumRolls1, numCombinations1 in rolls.items():
+        # sumRolls1: sum of 3d3, numCombinations1: number of combinations
         # Calculate new position of Player 1
-        p1_ = p1 + o1
+        newPlayer1pos = player1pos + sumRolls1
         # The board is circular, so 11 -> 1, 12->2, etc
-        while p1_ > 10:
-            p1_ -= 10
+        while newPlayer1pos > 10:
+            newPlayer1pos -= 10
 
         # Calculate new score
-        sc1_ = sc1 + p1_
+        newPlayer1score = player1score + newPlayer1pos
         # Calculate new number of universes
-        nn1_ = nn * n1
+        newNumUniverses = numUniverses * numCombinations1
         # Did P1 win?
-        if sc1_ >= 21:
-            dummystats[1] += nn1_
+        if newPlayer1score >= 21:
+            dummystats[1] += newNumUniverses
             continue
 
         # P1 did not win, proceed to P2
-        for o2, n2 in rolls.items():
-            p2_ = p2 + o2
-            while p2_ > 10:
-                p2 -= 10
-            sc2_ = sc2 + p2_
-            nn2_ = nn1_ * n2
+        for sumRolls2, numCombinations2 in rolls.items():
+            newPlayer2pos = player2pos + sumRolls2
+            while newPlayer2pos > 10:
+                player2pos -= 10
+            sc2_ = player2score + newPlayer2pos
+            newNumUniverses = newNumUniverses * numCombinations2
             # Did P2 win?
-            if sc2 >= 21:
-                dummystats[2] += nn2_
+            if player2score >= 21:
+                dummystats[2] += newNumUniverses
                 continue
 
             # Neither P1 nor P2 won, let's roll again
-            dummy_b(p1_, p2_, sc1_, sc2_, nn2_)
+            dummy_b(newPlayer1pos, newPlayer2pos, newPlayer1score, sc2_, newNumUniverses)
 
 
 def main_b():
