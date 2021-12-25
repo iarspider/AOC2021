@@ -1,24 +1,14 @@
 import itertools
-import os
 from collections import Counter
 
-from aocd.models import Puzzle
-from aocd.transforms import lines
-from colorama import init
-
-file__ = os.path.basename(__file__)
-puzzle = Puzzle(year=2021, day=int(file__[3:5]))
-
 rolls: Counter
+dummystats = {1: 0, 2: 0}
 
 
 def get_rolls(sides: int):
     global rolls
     x = list(itertools.product(*itertools.repeat(range(1, sides + 1), 3)))
     rolls = Counter([sum(_) for _ in x])
-
-
-dummystats = {1: 0, 2: 0}
 
 
 def dummy_b(p1: int, p2: int, sc1: int, sc2: int, nn1: int, nn2: int):
@@ -47,14 +37,8 @@ def dummy_b(p1: int, p2: int, sc1: int, sc2: int, nn1: int, nn2: int):
 
 
 def main_b():
-    # writebar(puzzle.day, 'b')
-    input = lines(puzzle.example_data)
-    # input = lines(puzzle.input_data)
-    p1 = int(input[0].rsplit()[-1])
-    p2 = int(input[1].rsplit()[-1])
-
     get_rolls(3)
-    dummy_b(p1, p2, 0, 0, 1, 1)
+    dummy_b(4, 8, 0, 0, 1, 1)
     print(dummystats)
 
 
@@ -62,7 +46,6 @@ def main_b():
 # Example: {1: 444356092776315, 2: 341960390180808}
 
 if __name__ == '__main__':
-    init()
     get_rolls(3)
     # main_a()
     main_b()
