@@ -39,24 +39,25 @@ def dummy_b(player1pos: int, player2pos: int, player1score: int, player2score: i
             newPlayer2pos = player2pos + sumRolls2
             while newPlayer2pos > 10:
                 newPlayer2pos -= 10
-            sc2_ = player2score + newPlayer2pos
+            newPlayer2score = player2score + newPlayer2pos
             newNumUniverses2 = newNumUniverses * numCombinations2
             # Did P2 win?
-            if player2score >= 21:
+            if newPlayer2score >= 21:
                 dummystats[2] += newNumUniverses2
                 continue
 
             # Neither P1 nor P2 won, let's roll again
-            dummy_b(newPlayer1pos, newPlayer2pos, newPlayer1score, sc2_, newNumUniverses2)
+            dummy_b(newPlayer1pos, newPlayer2pos, newPlayer1score, newPlayer2score, newNumUniverses2)
 
 
 def main_b():
     get_rolls(3)
-    dummy_b(4, 8, 0, 0, 1)
+    dummy_b(7, 1, 0, 0, 1)
     print(dummystats)
+    print(max(dummystats.values()))
 
 
-# Result : {1: 9550821261602295, 2: 3414564883507572}
+# Result : {1: 444356092776315,  2: 341960390180808}
 # Example: {1: 444356092776315,  2: 341960390180808}
 
 if __name__ == '__main__':
